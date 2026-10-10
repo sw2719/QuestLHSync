@@ -94,6 +94,9 @@ constexpr double kBodyNear = 1.0, kBodyGap = 1.0;  // m
 // ... or their motion does (Sync::BodyMotion): when the head went kBodyMoved, and they follow it one way by kBodyCorr
 // and the other way not (a fit and its mirror move them opposite ways)
 constexpr double kBodyMoved = 2.0, kBodyCorr = 0.2;  // m, correlation
+// a fit every station holds (three or more, each with kHeldN sightings within Solver::INLIER over Solver::WIN) gives
+// way to one far off it only when the worn or held devices favour that one
+constexpr int kHeldN = 100;
 
 double RotorPeriod(int channel);  // s, a 2.0 base station on channel 1..16, else 0
 
