@@ -1801,12 +1801,23 @@ StepStat Solver::Step(double /*now*/) {
       int fav = far ? BodyFavours(xa, x_, dn, dc, how) : 0;
       int need = far && !fav ? 2 * ACQ : ACQ;
       bool enough = sa >= k * need || tight >= k * TIGHT_N || (acq_forced_ && sa >= k * ACQ / 2);
+      // ... unless every station holds the current fit: then only they do. The thinned support above is the last
+      // ACQ_WIN s from distinct head cells, and a head that sat still for it leaves a fit three stations held for
+      // minutes a handful (a lit session: 4 and 5, against 16 and 20 for a wrong fit 7 of whose sightings, on lamps,
+      // were tight, and which left one station with none). A pose break, which a moved headset space comes with, or a
+      // station seen too little lets acquisition go as before; so does a two-station room
+      int held = 0;
+      for (auto &kv : st.per) held += kv.second >= kHeldN;
+      bool holds = far && fav != 1 && S.size() >= 3 && held == (int)S.size();
       if (!enough || !(sa > 2 * cur + 5 || acq_forced_)) {
-      } else if (fav == 2) {
+      } else if (fav == 2 || holds) {
         if (now - kept_said_ > 60) {
           kept_said_ = now;
+          std::string per;
+          for (auto &kv : st.per) per += Fmt("%s%d", per.empty() ? "" : "/", kv.second);
           log_(Fmt("acquisition: yaw %+.1f deg (support %d, was %d) would fit as well, but %s: the current fit stays",
-                   xa[0] * kDeg, sa, cur, how.c_str()));
+                   xa[0] * kDeg, sa, cur,
+                   fav == 2 ? how.c_str() : Fmt("every station holds it (%s sightings)", per.c_str()).c_str()));
         }
       } else {
         log_(Fmt("acquired: yaw %+.2f deg t [%.3f %.3f %.3f] support %d (%d within %.1f deg, was %d)%s", xa[0] * kDeg, xa[1],
